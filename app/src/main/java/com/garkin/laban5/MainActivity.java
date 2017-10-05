@@ -1,7 +1,5 @@
 package com.garkin.laban5;
 
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 
@@ -20,12 +18,16 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.List;
+
 public class MainActivity extends AppCompatActivity {
 
-    EditText editTextFirstName, editTextMiddleName, editTextLastName;
-    TextView tvIdPerson;
-    PersonDbHelper personDbHelper;
-    Long idPerson;
+    private EditText editTextFirstName, editTextMiddleName, editTextLastName;
+    private TextView tvIdPerson;
+    private static PersonDbHelper personDbHelper;
+    private static Person person;
+    private Long idPerson;
+    private static List<Person> personList;
 
     private SectionsPagerAdapter mSectionsPagerAdapter;
     private ViewPager mViewPager;
@@ -43,6 +45,8 @@ public class MainActivity extends AppCompatActivity {
 
         tvIdPerson = (TextView) findViewById(R.id.tvIdPerson);
 
+        personList = personDbHelper.getPersonList();
+
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -51,17 +55,6 @@ public class MainActivity extends AppCompatActivity {
         // Set up the ViewPager with the sections adapter.
         mViewPager = (ViewPager) findViewById(R.id.container);
         mViewPager.setAdapter(mSectionsPagerAdapter);
-
-
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
-
     }
 
     private void showToast(String message){
@@ -89,11 +82,12 @@ public class MainActivity extends AppCompatActivity {
         } else {
             Toast.makeText(getApplicationContext(), "Не все поля заполнены",Toast.LENGTH_LONG).show();
         }
+        personList = personDbHelper.getPersonList();
     }
 
     private void updatePerson(){
         Person person = new Person(
-                idPerson,
+                MainActivity.person.getId(),
                 editTextFirstName.getText().toString(),
                 editTextMiddleName.getText().toString(),
                 editTextLastName.getText().toString()
@@ -106,10 +100,11 @@ public class MainActivity extends AppCompatActivity {
             message = "Заявка не обновлена!";
         }
         showToast(message);
+        personList = personDbHelper.getPersonList();
     }
 
     private void deletePerson(){
-        int result = personDbHelper.deletePerson(this.idPerson);
+        int result = personDbHelper.deletePerson(person.getId());
 
         if (result == 1) {
             Toast.makeText(getApplicationContext(), "Заявка успешно удалена!",Toast.LENGTH_LONG).show();
@@ -117,8 +112,8 @@ public class MainActivity extends AppCompatActivity {
         } else {
             Toast.makeText(getApplicationContext(), "Заполните все поля, заявка не создана!",Toast.LENGTH_LONG).show();
         }
+        personList = personDbHelper.getPersonList();
     }
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -134,12 +129,17 @@ public class MainActivity extends AppCompatActivity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
         switch (id) {
+            case R.id.action_new_person:
+                clearText();
+                break;
             case R.id.action_create:
                 createPerson();
                 break;
-            case R.id.action_edit: updatePerson();
+            case R.id.action_edit:
+                updatePerson();
                 break;
-            case R.id.action_delete: deletePerson();
+            case R.id.action_delete:
+                deletePerson();
                 break;
         }
 
@@ -154,7 +154,13 @@ public class MainActivity extends AppCompatActivity {
          * The fragment argument representing the section number for this
          * fragment.
          */
-        private static final String ARG_SECTION_NUMBER = "section_number";
+        private EditText editTextFirstName, editTextMiddleName, editTextLastName;
+        private TextView tvIdPerson;
+
+        private static final String ARG_ID = "_ID";
+        private static final String ARG_FIRST_NAME = "first_name";
+        private static final String ARG_MIDDLE_NAME = "middle_name";
+        private static final String ARG_LAST_NAME = "last_name";
 
         public PlaceholderFragment() {
         }
@@ -166,8 +172,15 @@ public class MainActivity extends AppCompatActivity {
         public static PlaceholderFragment newInstance(int sectionNumber) {
             PlaceholderFragment fragment = new PlaceholderFragment();
             Bundle args = new Bundle();
-            args.putInt(ARG_SECTION_NUMBER, sectionNumber);
-            fragment.setArguments(args);
+            if (!personList.isEmpty() && sectionNumber < personList.size() - 1 ){
+                Person person = personList.get(sectionNumber);
+                args.putLong(ARG_ID, person.getId());
+                args.putString(ARG_FIRST_NAME, person.getFirstName());
+                args.putString(ARG_MIDDLE_NAME, person.getMiddleName());
+                args.putString(ARG_LAST_NAME, person.getLastName());
+                fragment.setArguments(args);
+            }
+
             return fragment;
         }
 
@@ -175,10 +188,36 @@ public class MainActivity extends AppCompatActivity {
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
             View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-            TextView textView = (TextView) rootView.findViewById(R.id.section_label);
-            textView.setText(getString(R.string.section_format, getArguments().getInt(ARG_SECTION_NUMBER)));
+            editTextFirstName = (EditText) rootView.findViewById(R.id.editTextFirstName);
+            editTextMiddleName = (EditText) rootView.findViewById(R.id.editTextMiddleName);
+            editTextLastName = (EditText) rootView.findViewById(R.id.editTextLastName);
+
+            tvIdPerson = (TextView) rootView.findViewById(R.id.tvIdPerson);
+
+//            Long id = getArguments().getLong(ARG_ID);
+//            String first_name = getArguments().getString(ARG_FIRST_NAME);
+//            String middle_name = getArguments().getString(ARG_MIDDLE_NAME);
+//            String last_name = getArguments().getString(ARG_LAST_NAME);
+//
+//            person = new Person(id, first_name, middle_name, last_name);
+//
+//
+//            setPersonInView(person);
             return rootView;
         }
+
+        private void setPersonInView(Person person){
+            editTextFirstName.getText().clear();
+            editTextMiddleName.getText().clear();
+            editTextLastName.getText().clear();
+
+            tvIdPerson.setText("Номер пользователя = " + person.getId());
+
+            editTextFirstName.getText().append(person.getFirstName());
+            editTextMiddleName.getText().append(person.getMiddleName());
+            editTextLastName.getText().append(person.getLastName());
+        }
+
     }
 
     /**
@@ -200,21 +239,16 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public int getCount() {
-            // Show 3 total pages.
-            return 3;
+            return personList.size() > 0 ? personList.size():1;
         }
 
         @Override
         public CharSequence getPageTitle(int position) {
             switch (position) {
-                case 0:
-                    return "SECTION 1";
-                case 1:
-                    return "SECTION 2";
-                case 2:
-                    return "SECTION 3";
+                default:
+//                    return personList.get(position).getFirstName();
+                    return "Всенм привет";
             }
-            return null;
         }
     }
 }

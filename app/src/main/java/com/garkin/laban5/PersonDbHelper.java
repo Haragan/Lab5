@@ -111,7 +111,6 @@ public class PersonDbHelper extends SQLiteOpenHelper {
         return null;
     }
 
-    @Override
     public List<Person> getPersonList() {
         List<Person> personList = new ArrayList<>();
         db = this.getReadableDatabase();
